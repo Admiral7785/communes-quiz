@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Jeux des Communes</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-ajax/2.1.0/leaflet.ajax.min.js"></script>
+
+<style>
+body, html { margin:0; padding:0; height:100%; font-family:sans-serif; }
+h1 { text-align:center; margin:10px 0; }
+#map { height:60%; width:100%; }
+
+/* Centrage du bloc de contrôle */
+#controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin: 10px 0;
+}
+
+#popTotalContainer {
+    font-weight: bold;
+    font-size: 14px;
+    color: #2c3e50;
+    background: #ecf0f1;
+    padding: 5px 15px;
+    border-radius: 5px;
+    min-width: 250px;
+    text-align: center;
+    border: 1px solid #bdc3c7;
+}
+
+#communeInput, #deptSelect { padding:5px; font-size:14px; }
+#deptSelect { text-align: left; min-width: 260px; }
+#compteur { text-align:center; margin:5px; font-weight:bold; }
+
+#historiqueContainer {
+    width:95%; margin:10px auto;
+    display:flex; flex-wrap:wrap;
+    justify-content:center; align-items:flex-start;
+    gap:10px; font-family:"Times New Roman", serif; font-size:14px;
+}
+
+.deptSection {
+    border:1px solid #ccc; border-radius:8px;
+    overflow:hidden; flex:1 1 350px;
+    max-width:400px; background:#fafafa;
+    display:flex; flex-direction:column;
+}
+
+.deptHeader {
+    background:#ddd; padding:6px 10px;
+    font-weight:bold; display:flex;
+    justify-content:space-between; align-items:center;
+}
+
+.sortButtons button { margin-left:5px; padding:3px 6px; font-size:12px; cursor:pointer; }
+
+table { width:100%; border-collapse:collapse; }
+th, td { border:1px solid #ccc; padding:4px; text-align:left; }
+
+.col-action { text-align: center; width: 30px; }
+.btn-delete {
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: #999;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 0 5px;
+}
+.btn-delete:hover { color: #e74c3c; }
+</style>
+</head>
+<body>
+
+<div id="controls">
+  <div id="popTotalContainer">
+    <span id="popCumulee">0</span> hab. — <span id="popTotal">0.000 %</span>
+  </div>
+  
+  <select id="deptSelect">
+    <option value="">-- Sélectionnez une zone --</option>
+
+    <optgroup label="Régions">
+      <option value="bretagne">Région Bretagne (4 depts)</option>
+    </optgroup>
+
+    <optgroup label="Auvergne-Rhône-Alpes">
+      <option value="ain">01. Ain</option>
+      <option value="allier">03. Allier</option>
+      <option value="ardeche">07. Ardèche</option>
+      <option value="cantal">15. Cantal</option>
+      <option value="drôme">26. Drôme</option>
+      <option value="isere">38. Isère</option>
+      <option value="loire">42. Loire</option>
+      <option value="haute-loire">43. Haute-Loire</option>
+      <option value="puy-de-dôme">63. Puy-de-Dôme</option>
+      <option value="rhône">69. Rhône</option>
+      <option value="savoie">73. Savoie</option>
+      <option value="haute-savoie">74. Haute-Savoie</option>
+    </optgroup>
+
+    <optgroup label="Bretagne">
+      <option value="côtes-d'armor">22. Côtes-d'Armor</option>
+      <option value="finistere">29. Finistère</option>
+      <option value="ille-et-vilaine">35. Ille-et-Vilaine</option>
+      <option value="morbihan">56. Morbihan</option>
+    </optgroup>
+
+     <optgroup label="Corse">
+      <option value="haute-corse">2B. Haute-Corse</option>
+     </optgroup>
+
+    <optgroup label="Nouvelle-Aquitaine">
+      <option value="charente">16. Charente</option>
+      <option value="charente_maritime">17. Charente-Maritime</option>
+      <option value="correze">19. Corrèze</option>
+      <option value="creuse">23. Creuse</option>
+      <option value="dordogne">24. Dordogne</option>
+      <option value="gironde">33. Gironde</option>
+      <option value="landes">40. Landes</option>
+      <option value="lot-et-garonne">47. Lot-et-Garonne</option>
+      <option value="pyrenees-atlantiques">64. Pyrénées-Atlantiques</option>
+      <option value="deux-sèvres">79. Deux-Sèvres</option>
+      <option value="vienne">86. Vienne</option>
+      <option value="haute-vienne">87. Haute-Vienne</option>
+    </optgroup>
+
+    <optgroup label="Pays de la Loire">
+      <option value="loire-atlantique">44. Loire-Atlantique</option>
+      <option value="maine-et-loire">49. Maine-et-Loire</option>
+      <option value="mayenne">53. Mayenne</option>
+      <option value="sarthe">72. Sarthe</option>
+      <option value="vendée">85. Vendée</option>
+    </optgroup>
+
+
+  <optgroup label="Provence-Alpes-Côte d'Azur">
+  <option value="alpes-de-haute-provence">04. Alpes-de-Haute-Provence</option>
+  <option value="hautes-alpes">05. Hautes-Alpes</option>
+  <option value="alpes-maritimes">06. Alpes-Maritimes</option>
+   <option value="bouches-du-rhone">13. Bouches-du-Rhône</option>
+  <option value="var">83. Var</option>
+  <option value="vaucluse">84. Vaucluse</option>
+  </optgroup>
+ </select>
+  <input type="text" id="communeInput" placeholder="Tapez une commune...">
+</div>
+
+
+<div id="compteur">0 / 34745 communes trouvées</div>
+<div id="map"></div>
+<div id="historiqueContainer"></div>
+
+<script>
+const map = L.map('map', {
+  center: [42.375, 9.131],
+  zoom: 8.5,
+  zoomControl: false,
+  scrollWheelZoom: false,
+  doubleClickZoom: false,
+  touchZoom: false,
+  dragging: true,
+  attributionControl: false
+});
+
+new L.GeoJSON.AJAX(
+  "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements.geojson",
+  { style: f => ({color:"black", weight:1, fillColor:"#d3d3d3", fillOpacity:1}) }
+).addTo(map);
+
+let communes = [];
+let communesRestantes = new Set();
+let communesTrouveesGlobal = new Set();
+let compteur = 0;
+let totalPourcentage = 0;
+let populationCumulee = 0; // Nouvelle variable pour le total d'habitants
+let sections = {};
+
+const compteurEl = document.getElementById("compteur");
+const popTotalEl = document.getElementById("popTotal");
+const popCumuleeEl = document.getElementById("popCumulee");
+const historiqueContainer = document.getElementById("historiqueContainer");
+const input = document.getElementById("communeInput");
+
+const POP_FRANCE_2023 = 66165815;
+
+function getRadius(pop) {
+  if(pop>=2000000) return 36;
+  if(pop>=500000) return 31;
+  if(pop>=100000) return 27;
+  if(pop>=50000) return 19;
+  if(pop>=25000) return 15;
+  if(pop>=15000) return 12;
+  if(pop>=10000) return 10;
+  if(pop>=5000) return 8;
+  if(pop>=2000) return 6;
+  if(pop>=1000) return 4;
+  if(pop>=100) return 3;
+  if(pop<100) return 1;
+  return 3;
+}
+
+function normalize(str) {
+  return str.normalize("NFD").replace(/œ/g,"oe").replace(/[\u0300-\u036f]/g,'')
+            .replace(/[^a-z0-9]/gi,'').replace(/^saint/i,'st')
+            .toLowerCase();
+}
+
+function formatPopulation(pop) {
+  return pop.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+}
+
+const deptCodes = {
+"ain": "Ain",
+"allier": "Allier",
+"alpes-de-haute-provence": "Alpes-de-Haute-Provence",
+"alpes-maritimes": "Alpes-Maritimes",
+"hautes-alpes": "Hautes-Alpes",
+"ardeche": "Ardèche",
+"bouches-du-rhone": "Bouches-du-Rhône",
+"cantal": "Cantal",
+"charente": "Charente",
+"charente_maritime": "Charente-Maritime",
+"correze": "Corrèze",
+"côtes-d'armor": "Côtes-d'Armor",
+"creuse": "Creuse",
+"dordogne": "Dordogne",
+"drôme": "Drôme",
+"finistere": "Finistère",
+"gironde": "Gironde",
+"ille-et-vilaine": "Ille-et-Vilaine",
+"isere": "Isère",
+"landes": "Landes",
+"loire": "Loire",
+"haute-corse": "Haute-Corse",
+"haute-loire": "Haute-Loire",
+"loire-atlantique": "Loire-Atlantique",
+"lot-et-garonne": "Lot-et-Garonne",
+"maine-et-loire": "Maine-et-Loire",
+"mayenne": "Mayenne",
+"morbihan": "Morbihan",
+"puy-de-dôme": "Puy-de-Dôme",
+"pyrenees-atlantiques": "Pyrénées-Atlantiques",
+"rhône": "Rhône",
+"sarthe": "Sarthe",
+"savoie": "Savoie",
+"haute-savoie": "Haute-Savoie",
+"deux-sèvres": "Deux-Sèvres",
+"var": "Var",
+"vaucluse": "Vaucluse",
+"vendée": "Vendée",
+"vienne": "Vienne",
+"haute-vienne": "Haute-Vienne",
+};
+
+document.getElementById("deptSelect").addEventListener("change", async function(){
+  const dept=this.value;
+  if(!dept) return;
+  const response = await fetch(dept+".json");
+  const data = await response.json();
+  communes = data;
+  communesRestantes.clear();
+  data.forEach(c=>communesRestantes.add(normalize(c.nom)));
+  if(!sections[dept]) createDeptSection(dept);
+});
+
+function createDeptSection(deptName){
+  const section = document.createElement("div");
+  section.classList.add("deptSection");
+  section.id = "section-" + deptName;
+  const header = document.createElement("div");
+  header.classList.add("deptHeader");
+  header.innerHTML = `<span>${deptCodes[deptName]}</span>`;
+  const sortDiv = document.createElement("div");
+  sortDiv.classList.add("sortButtons");
+  const sortAlpha = document.createElement("button"); sortAlpha.textContent="A-Z";
+  const sortPop = document.createElement("button"); sortPop.textContent="Pop";
+  sortDiv.append(sortAlpha, sortPop);
+  header.appendChild(sortDiv);
+  const table = document.createElement("table");
+  const tbody = document.createElement("tbody");
+  table.appendChild(tbody);
+  section.append(header, table);
+  historiqueContainer.appendChild(section);
+  sortAlpha.addEventListener("click", ()=>sortTable(tbody,"alpha"));
+  sortPop.addEventListener("click", ()=>sortTable(tbody,"pop"));
+  sections[deptName] = {section, tbody};
+}
+
+function sortTable(tbody, mode){
+  const rows=Array.from(tbody.querySelectorAll("tr"));
+  rows.sort((a,b)=>{
+    if(mode==="alpha") return a.dataset.nom.localeCompare(b.dataset.nom);
+    else return Number(b.dataset.pop)-Number(a.dataset.pop);
+  });
+  tbody.innerHTML="";
+  rows.forEach(r=>tbody.appendChild(r));
+}
+
+function verifierCommune(){
+  const saisie=normalize(input.value);
+  const dept=document.getElementById("deptSelect").value;
+  if(!dept || !communesRestantes.has(saisie)) return;
+
+  const uniqueKey = saisie + "_" + dept;
+  if(communesTrouveesGlobal.has(uniqueKey)) {
+      input.value = "";
+      return;
+  }
+
+  const c=communes.find(x=>normalize(x.nom)===saisie);
+  if(!c) return;
+
+  communesRestantes.delete(saisie);
+  communesTrouveesGlobal.add(uniqueKey);
+
+  const marker = L.circleMarker([c.lat, c.lon], {
+    radius: getRadius(c.pop),
+    color:"red", fillColor:"red", fillOpacity:0.5
+  }).addTo(map);
+  marker.bindTooltip(`${c.nom} (${formatPopulation(c.pop)} hab)`);
+  c.currentMarker = marker;
+
+  // Calculs
+  const partCommune = (c.pop / POP_FRANCE_2023) * 100;
+  populationCumulee += c.pop; // Addition de la population
+  totalPourcentage += partCommune;
+
+  const {tbody}=sections[dept];
+  const tr = document.createElement("tr");
+  tr.dataset.nom = c.nom.toLowerCase();
+  tr.dataset.pop = c.pop;
+  tr.id = "row-" + normalize(c.nom);
+  
+  tr.innerHTML=`
+    <td>${c.nom} (${formatPopulation(c.pop)}) <span style="color:#7f8c8d; font-size:0.9em; margin-left:5px;">+${partCommune.toFixed(3)}%</span></td>
+    <td class="col-action">
+        <button class="btn-delete" title="Supprimer" onclick="supprimerCommune('${c.nom.replace(/'/g, "\\'")}', '${dept}')">×</button>
+    </td>
+  `;
+  tbody.appendChild(tr);
+  compteur++;
+  updateAffichage();
+  input.value="";
+}
+
+function supprimerCommune(nom, dept) {
+    if(!confirm(`Supprimer ${nom} ?`)) return;
+    const normNom = normalize(nom);
+    const uniqueKey = normNom + "_" + dept;
+    const c = communes.find(x => normalize(x.nom) === normNom);
+    if(c) {
+        if(c.currentMarker) map.removeLayer(c.currentMarker);
+        populationCumulee -= c.pop; // Soustraction de la population
+        totalPourcentage -= (c.pop / POP_FRANCE_2023) * 100;
+    }
+    const row = document.getElementById("row-" + normNom);
+    if(row) row.remove();
+    communesRestantes.add(normNom);
+    communesTrouveesGlobal.delete(uniqueKey);
+    compteur--;
+    updateAffichage();
+}
+
+function updateAffichage(){
+  compteurEl.textContent = compteur + " / 34875 communes trouvées";
+  popCumuleeEl.textContent = formatPopulation(Math.max(0, populationCumulee));
+  popTotalEl.textContent = Math.max(0, totalPourcentage).toFixed(3) + " %";
+}
+
+input.addEventListener("input", ()=>verifierCommune());
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    verifierCommune();
+  }
+});
+</script>
+</body>
+</html>
